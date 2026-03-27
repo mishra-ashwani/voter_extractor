@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter List PDF Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface2: #1a2332;
+            --border: #1e2d3d;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', 'Noto Sans Devanagari', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 32px 20px; }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .header p { color: var(--text-dim); font-size: 14px; }
+        .badge-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: rgba(59, 130, 246, 0.3); }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-num {
+            width: 26px; height: 26px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700;
+        }
+
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+        .upload-zone input { display: none; }
+        .upload-icon { font-size: 40px; margin-bottom: 12px; }
+        .upload-zone p { color: var(--text-dim); font-size: 14px; }
+        .upload-zone .hint { font-size: 12px; margin-top: 8px; color: var(--text-dim); opacity: 0.6; }
+
+        /* Detection result */
+        .detect-result {
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-top: 16px;
+            display: none;
+        }
+        .detect-result.type1 { background: var(--accent-glow); border: 1px solid rgba(59, 130, 246, 0.3); }
+        .detect-result.type2 { background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); }
+        .detect-label { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+        .detect-meta { font-size: 13px; color: var(--text-dim); }
+        .detect-meta span { color: var(--accent); font-weight: 500; }
+
+        /* API key input */
+        .api-section { display: none; margin-top: 16px; }
+        .api-section label { font-size: 13px; color: var(--text-dim); display: block; margin-bottom: 6px; }
+        .api-section input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .api-section input:focus { outline: none; border-color: var(--accent); }
+        .api-note { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 28px;
+            border-radius: 8px;
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .btn-success:hover { box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+
+        /* Progress */
+        .progress-section { display: none; margin-top: 20px; }
+        .progress-bar-container {
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        .progress-text { font-size: 13px; color: var(--text-dim); }
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--text-dim);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Results */
+        .results { display: none; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+        /* Preview table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 16px;
+        }
+        .preview-table th {
+            background: var(--bg);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+        .preview-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .preview-table tr:hover td { background: rgba(59, 130, 246, 0.05); }
+        .gender-m { color: #60a5fa; }
+        .gender-f { color: #f472b6; }
+
+        /* Error */
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 13px;
+            display: none;
+            margin-top: 12px;
+        }
+
+        /* Architecture info */
+        .arch-info {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.8;
+        }
+        .arch-info code {
+            background: var(--bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--accent);
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            .card { padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗳️ Voter List PDF Extractor</h1>
+            <p>Extract structured voter data from Indian electoral roll PDFs into CSV</p>
+            <div class="badge-row">
+                <span class="badge">पंचायत निर्वाचक नामावली</span>
+                <span class="badge">विधानसभा निर्वाचक नामावली</span>
+                <span class="badge">PyMuPDF + Claude Vision</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Upload -->
+        <div class="card" id="uploadCard">
+            <div class="card-title">
+                <span class="step-num">1</span> Upload Electoral Roll PDF
+            </div>
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept=".pdf">
+                <div class="upload-icon">📄</div>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p class="hint">Supports Panchayat & Vidhan Sabha voter list PDFs (max 50MB)</p>
+            </div>
+
+            <div class="detect-result" id="detectResult">
+                <div class="detect-label" id="detectLabel"></div>
+                <div class="detect-meta" id="detectMeta"></div>
+            </div>
+
+            <div class="error-msg" id="uploadError"></div>
+        </div>
+
+        <!-- Step 2: Configure & Extract -->
+        <div class="card" id="extractCard" style="display:none;">
+            <div class="card-title">
+                <span class="step-num">2</span> Extract Voter Data
+            </div>
+
+            <div class="api-section" id="apiSection">
+                <label>🔑 Anthropic API Key (required for image-based PDFs)</label>
+                <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+                <p class="api-note">Your key is only used for this extraction and never stored on server.</p>
+            </div>
+
+            <div class="arch-info" id="archInfo"></div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" id="extractBtn" onclick="startExtraction()">
+                    ⚡ Extract Voter Data
+                </button>
+            </div>
+
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p class="progress-text"><span class="spinner"></span> <span id="progressText">Starting extraction...</span></p>
+            </div>
+
+            <div class="error-msg" id="extractError"></div>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div class="results" id="resultsSection">
+            <div class="card">
+                <div class="card-title">
+                    <span class="step-num">3</span> Extraction Results
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalCount">-</div>
+                        <div class="stat-label">Total Voters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value gender-m" id="maleCount">-</div>
+                        <div class="stat-label">Male (पुरुष)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value gender-f" id="femaleCount">-</div>
+                        <div class="stat-label">Female (महिला)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="methodUsed" style="font-size:14px;">-</div>
+                        <div class="stat-label">Method</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadCSV()">
+                    📥 Download CSV
+                </button>
+                <button class="btn btn-primary" style="margin-left:8px;" onclick="resetApp()">
+                    🔄 Extract Another
+                </button>
+
+                <div style="margin-top: 20px;">
+                    <h4 style="font-size:14px; color:var(--text-dim); margin-bottom:8px;">Preview (first 10 records)</h4>
+                    <div style="overflow-x:auto;">
+                        <table class="preview-table" id="previewTable">
+                            <thead>
+                                <tr>
+                                    <th>क्र.सं.</th>
+                                    <th>Voter ID</th>
+                                    <th>नाम</th>
+                                    <th>पिता/पति</th>
+                                    <th>मकान</th>
+                                    <th>लिंग</th>
+                                    <th>आयु</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+
+        // Drag and drop
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                uploadFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', e => {
+            if (e.target.files.length) uploadFile(e.target.files[0]);
+        });
+
+        async function uploadFile(file) {
+            hideError('uploadError');
+            const formData = new FormData();
+            formData.append('pdf', file);
+
+            dropZone.innerHTML = `<div class="spinner"></div><p style="margin-top:12px;">Analyzing ${file.name}...</p>`;
+
+            try {
+                const resp = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.error) {
+                    showError('uploadError', data.error);
+                    resetDropZone();
+                    return;
+                }
+
+                currentJobId = data.job_id;
+                showDetectionResult(data);
+                showExtractCard(data);
+
+            } catch (err) {
+                showError('uploadError', 'Upload failed. Please try again.');
+                resetDropZone();
+            }
+        }
+
+        function showDetectionResult(data) {
+            const el = document.getElementById('detectResult');
+            const isType1 = data.pdf_type === 'panchayat_table';
+            el.className = `detect-result ${isType1 ? 'type1' : 'type2'}`;
+            el.style.display = 'block';
+
+            document.getElementById('detectLabel').textContent =
+                `✅ Detected: ${data.info.label}`;
+            document.getElementById('detectMeta').innerHTML =
+                `Method: <span>${data.info.method}</span> · Pages: <span>${data.info.pages}</span> · API Required: <span>${data.info.needs_api ? 'Yes' : 'No'}</span>`;
+
+            dropZone.innerHTML = `<div style="font-size:24px;">✅</div><p><strong>${data.filename}</strong></p><p class="hint">${data.info.label}</p>`;
+        }
+
+        function showExtractCard(data) {
+            document.getElementById('extractCard').style.display = 'block';
+
+            if (data.info.needs_api) {
+                document.getElementById('apiSection').style.display = 'block';
+                document.getElementById('archInfo').innerHTML =
+                    `<strong>Architecture:</strong> PDF pages → Image conversion (200 DPI) → <code>Claude Vision API</code> → Structured JSON → CSV<br>` +
+                    `This PDF contains <strong>only images</strong> (no embedded text). Each page is sent to Claude's vision model for Hindi text recognition.<br>` +
+                    `Estimated API calls: ~${data.info.pages - 3} (data pages only)`;
+            } else {
+                document.getElementById('apiSection').style.display = 'none';
+                document.getElementById('archInfo').innerHTML =
+                    `<strong>Architecture:</strong> <code>PyMuPDF</code> text extraction → Character mapping (200+ rules) → Clean Hindi text → CSV<br>` +
+                    `This PDF has embedded text with broken font encoding. No API key needed — extraction runs locally.`;
+            }
+        }
+
+        async function startExtraction() {
+            hideError('extractError');
+            const btn = document.getElementById('extractBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Extracting...';
+
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressBar').style.width = '30%';
+            document.getElementById('progressText').textContent = 'Extracting voter records...';
+
+            try {
+                const resp = await fetch('/extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        job_id: currentJobId,
+                        api_key: document.getElementById('apiKey').value,
+                    })
+                });
+
+                document.getElementById('progressBar').style.width = '90%';
+                const data = await resp.json();
+
+                if (data.error) {
+                    showError('extractError', data.error);
+                    btn.disabled = false;
+                    btn.innerHTML = '⚡ Extract Voter Data';
+                    document.getElementById('progressSection').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressText').textContent = 'Extraction complete!';
+
+                showResults(data);
+
+            } catch (err) {
+                showError('extractError', 'Extraction failed: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '⚡ Extract Voter Data';
+                document.getElementById('progressSection').style.display = 'none';
+            }
+        }
+
+        function showResults(data) {
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('totalCount').textContent = data.total;
+            document.getElementById('maleCount').textContent = data.male;
+            document.getElementById('femaleCount').textContent = data.female;
+            document.getElementById('methodUsed').textContent = data.method;
+
+            const tbody = document.getElementById('previewBody');
+            tbody.innerHTML = '';
+            data.preview.forEach(r => {
+                const genderClass = (r.gender === 'पु' || r.gender === 'पुरुष') ? 'gender-m' : 'gender-f';
+                tbody.innerHTML += `<tr>
+                    <td>${r.sr_no || ''}</td>
+                    <td><code style="font-size:11px;">${r.voter_id || ''}</code></td>
+                    <td>${r.name || ''}</td>
+                    <td>${r.father_name || ''}</td>
+                    <td>${r.house_no || ''}</td>
+                    <td class="${genderClass}">${r.gender || ''}</td>
+                    <td>${r.age || ''}</td>
+                </tr>`;
+            });
+
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function downloadCSV() {
+            if (currentJobId) window.location.href = `/download/${currentJobId}`;
+        }
+
+        function resetApp() {
+            currentJobId = null;
+            document.getElementById('extractCard').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('detectResult').style.display = 'none';
+            document.getElementById('extractBtn').disabled = false;
+            document.getElementById('extractBtn').innerHTML = '⚡ Extract Voter Data';
+            resetDropZone();
+        }
+
+        function resetDropZone() {
+            dropZone.innerHTML = `
+                <input type="file" id="fileInput" accept=".pdf" style="display:none;">
+                <div class="upload-icon">📄</div>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p class="hint">Supports Panchayat & Vidhan Sabha voter list PDFs (max 50MB)</p>`;
+            document.getElementById('fileInput').addEventListener('change', e => {
+                if (e.target.files.length) uploadFile(e.target.files[0]);
+            });
+        }
+
+        function showError(id, msg) { const el = document.getElementById(id); el.textContent = '⚠️ ' + msg; el.style.display = 'block'; }
+        function hideError(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+</html>
