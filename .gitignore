@@ -1,0 +1,27 @@
+# Virtual environment
+venv/
+
+# Uploaded PDFs and extracted outputs
+uploads/
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
